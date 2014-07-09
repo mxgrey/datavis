@@ -107,6 +107,13 @@ void Surf3D::assemble()
         }
     }
 
+    _geom->setVertexArray(_verts);
+    _geom->addPrimitiveSet(_faces);
+
+    _geom->setColorArray(_colors);
+    _geom->setColorBinding(osg::Geometry::BIND_PER_PRIMITIVE_SET);
+
+    this->addDrawable(_geom);
 }
 
 
