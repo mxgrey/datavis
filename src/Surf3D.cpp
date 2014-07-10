@@ -46,15 +46,15 @@ Surf3D::Surf3D(const std::string &filename, osg::Vec4 color) :
 
         data.push_back(dataline);
     }
+    
+    filestream.close();
 
     assemble();
 }
 
 Surf3D::~Surf3D()
 {
-//    delete _geom;
-//    delete _verts;
-//    delete _colors;
+    
 }
 
 void Surf3D::assemble()

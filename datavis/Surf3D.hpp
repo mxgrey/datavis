@@ -8,13 +8,12 @@
 
 namespace datavis {
 
-class Surf3D : osg::Geode
+class Surf3D : public osg::Geode
 {
 public:
 
     Surf3D();
     Surf3D(const std::string& filename, osg::Vec4 color = osg::Vec4(0,0,1,1));
-    virtual ~Surf3D();
 
     std::vector< std::vector<double> > data;
     osg::Vec4 color;
@@ -23,11 +22,13 @@ public:
 
 
 protected:
+    
+    virtual ~Surf3D();
 
-    osg::Geometry* _geom;
-    osg::Vec3Array* _verts;
-    osg::Vec4Array* _colors;
-    osg::DrawElementsUInt* _faces;
+    osg::ref_ptr<osg::Geometry> _geom;
+    osg::ref_ptr<osg::Vec3Array> _verts;
+    osg::ref_ptr<osg::Vec4Array> _colors;
+    osg::ref_ptr<osg::DrawElementsUInt> _faces;
 
 };
 
