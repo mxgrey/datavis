@@ -79,6 +79,7 @@ void Surf3D::assemble()
     for(size_t i=0; i<data.size(); ++i)
     {
         const std::vector<double>& values = data[i];
+        std::vector< std::vector<unsigned int> > row;
         if(values.size() != layersize)
         {
             std::cerr << "Size of layer " << i << " (" << values.size()
@@ -87,23 +88,46 @@ void Surf3D::assemble()
         }
         double z = values[0];
         double x=0, y=0;
+
+        std::vector<unsigned int> points;
+        if(pointcount%2 != 0)
+            std::cout << "Expected an even number of points per row, but got "
+                      << pointcount << " for row #" << i << std::endl;
+
         for(size_t j=0; j<pointcount; ++j)
         {
             x = values[2*j+1];
             y = values[2*j+2];
 
             _verts->push_back(osg::Vec3(x,y,z));
+
+            if(j%2==0)
+            {
+                points.clear();
+                points.push_back(_verts->size()-1);
+            }
+            else
+            {
+                points.push_back(_verts->size()-1);
+                row.push_back(points);
+                points.clear();
+            }
         }
+
+        p.push_back(row);
     }
 
     for(size_t i=0; i<data.size()-1; ++i)
     {
-        for(size_t j=0; j<pointcount-1; ++j)
+        for(size_t j=0; j<(pointcount-1)/2; ++j)
         {
-            _faces->push_back(layersize*i + j);
-            _faces->push_back(layersize*i + j+1);
-            _faces->push_back(layersize*(i+1) + j);
-            _faces->push_back(layersize*(i+1) + j+1);
+            for(size_t k=0; k<2; ++k)
+            {
+                _faces->push_back(p[i][j][k]);
+                _faces->push_back(p[i][j+1][k]);
+                _faces->push_back(p[i+1][j+1][k]);
+                _faces->push_back(p[i+1][j][k]);
+            }
         }
     }
 
