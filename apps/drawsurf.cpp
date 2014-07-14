@@ -16,17 +16,17 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    ref_ptr<Surf3D> surf = new Surf3D(argv[1]);
+    ref_ptr<Surf3D> surf = new Surf3D(argv[1], Vec4(0,0,1,0.9), Vec4(1,0,0,0.9));
     ref_ptr<Group> root = new Group;
     root->addChild(surf);
     
 //    ref_ptr<Light> light = new Light;
 //    light->setLightNum(4);
 //    light->setAmbient(Vec4(0.0,0.0,0.0,1.0));
-//    light->setDiffuse(Vec4(1.0,0.0,0.0,1.0));
+//    light->setDiffuse(Vec4(1.0,1.0,1.0,1.0));
 //    light->setSpecular(Vec4(1.0,1.0,1.0,1.0));
-//    light->setPosition(Vec4(0,0,1.5*surf->z_scale,1.0));
-//    light->setDirection(Vec3(-1.0,0,-1.0));
+//    light->setPosition(Vec4(0.0,0,1.5*surf->z_scale,1.0));
+//    light->setDirection(Vec3(-0.0,0,-1.0));
     
     
 //    ref_ptr<LightSource> source = new LightSource;
