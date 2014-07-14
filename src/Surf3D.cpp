@@ -4,7 +4,6 @@
 #include <osg/Geometry>
 #include <osg/LineWidth>
 
-
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -18,7 +17,7 @@ Surf3D::Surf3D()
 
 }
 
-Surf3D::Surf3D(const std::string &filename, osg::Vec4 startColor, Vec4 finalColor) :
+Surf3D::Surf3D(const std::string &filename, osg::Vec4 startColor, Vec4 finalColor, bool autoAssemble) :
     startColor(startColor),
     finalColor(finalColor)
 {
@@ -60,12 +59,15 @@ Surf3D::Surf3D(const std::string &filename, osg::Vec4 startColor, Vec4 finalColo
     x_scale = 1.0;
     y_scale = 0.5;
     z_scale = 0.1;
+    lower_axis_scale = 1.2;
+    upper_axis_scale = 1.6;
     
-    getOrCreateStateSet()->setAttributeAndModes(new LineWidth(5));
+    getOrCreateStateSet()->setAttributeAndModes(new LineWidth(2));
     getOrCreateStateSet()->setMode(GL_BLEND, StateAttribute::ON);
     getOrCreateStateSet()->setRenderingHint(StateSet::TRANSPARENT_BIN);
     
-    assemble();
+    if(autoAssemble)
+        assemble();
 }
 
 Surf3D::~Surf3D()
@@ -97,17 +99,25 @@ void Surf3D::assemble()
     size_t pointcount = (layersize-1)/2;
 
     _geom = new Geometry;
-    _lineGeom = new Geometry;
+    _axisGeom = new Geometry;
     
     ref_ptr<Vec3Array> tverts = new Vec3Array;
     _verts = new Vec3Array;
+    _axisVerts = new Vec3Array;
     _normals = new Vec3Array;
     _colors = new Vec4Array;
-    _lineColors = new Vec4Array;
+    _axisColors = new Vec4Array;
 
     _faces = new DrawElementsUInt(PrimitiveSet::QUADS, 0);
-    _lines = new DrawElementsUInt(PrimitiveSet::LINES, 0);
+    _axisLines = new DrawElementsUInt(PrimitiveSet::LINES, 0);
     _nbinds = new UIntArray;
+    
+    std::vector<double> bounds; bounds.resize(6);
+    for(size_t i=0; i<3; ++i)
+    {
+        bounds[2*i] = INFINITY;
+        bounds[2*i+1] = -INFINITY;
+    }
     
     for(size_t i=0; i<data.size(); ++i)
     {
@@ -133,6 +143,15 @@ void Surf3D::assemble()
             y = y_scale*values[2*j+2];
 
             tverts->push_back(osg::Vec3(x,y,z));
+            const Vec3& vert = tverts->back();
+            
+            for(size_t i=0; i<3; ++i)
+            {
+                if(vert[i] < bounds[2*i])
+                    bounds[2*i] = vert[i];
+                if(vert[i] > bounds[2*i+1])
+                    bounds[2*i+1] = vert[i];
+            }
 
             if(j%2==0)
             {
@@ -158,30 +177,18 @@ void Surf3D::assemble()
         _verts->push_back((*tverts)[p[i][0][0]]);
         _faces->push_back(_verts->size()-1);
         _colors->push_back(getColor(i));
-//        _lineColors->push_back(lineColor);
-//        _lines->push_back(_verts->size()-1);
-//        size_t closer = _verts->size()-1;
         
         _verts->push_back((*tverts)[p[i][0][1]]);
         _faces->push_back(_verts->size()-1);
         _colors->push_back(getColor(i));
-//        _lineColors->push_back(lineColor);
-//        _lines->push_back(_verts->size()-1);
-//        _lines->push_back(_verts->size()-1);
         
         _verts->push_back((*tverts)[p[i+1][0][1]]);
         _faces->push_back(_verts->size()-1);
         _colors->push_back(getColor(i+1));
-//        _lineColors->push_back(lineColor);
-//        _lines->push_back(_verts->size()-1);
-//        _lines->push_back(_verts->size()-1);
         
         _verts->push_back((*tverts)[p[i+1][0][0]]);
         _faces->push_back(_verts->size()-1);
         _colors->push_back(getColor(i+1));
-//        _lineColors->push_back(lineColor);
-//        _lines->push_back(_verts->size()-1);
-//        _lines->push_back(closer);
         
         _normals->push_back(getNormal(*tverts, p[i][0][0], p[i+1][0][1], p[i][0][1]));
         _nbinds->push_back(_normals->size()-1);
@@ -189,16 +196,6 @@ void Surf3D::assemble()
         _nbinds->push_back(_normals->size()-1);
         _nbinds->push_back(_normals->size()-1);
         
-//        _lines->push_back(p[i][0][0]);
-//        _lines->push_back(p[i][0][1]);      //
-//        _lines->push_back(p[i][0][1]);
-//        _lines->push_back(p[i+1][0][1]);    //
-//        _lines->push_back(p[i+1][0][1]);
-//        _lines->push_back(p[i+1][0][0]);    //
-//        _lines->push_back(p[i+1][0][0]);
-//        _lines->push_back(p[i][0][0]);      //
-        
-//        for(size_t j=0; j<(pointcount-1)/2; ++j)
         for(size_t j=0; j<y_count; ++j)
         {
             
@@ -225,15 +222,6 @@ void Surf3D::assemble()
                 _nbinds->push_back(_normals->size()-1);
                 _nbinds->push_back(_normals->size()-1);
                 _nbinds->push_back(_normals->size()-1);
-                
-//                _lines->push_back(p[i][j][k]);
-//                _lines->push_back(p[i][j+1][k]);        //
-//                _lines->push_back(p[i][j+1][k]);
-//                _lines->push_back(p[i+1][j+1][k]);      //
-//                _lines->push_back(p[i+1][j+1][k]);
-//                _lines->push_back(p[i+1][j][k]);        //
-//                _lines->push_back(p[i+1][j][k]);
-//                _lines->push_back(p[i][j][k]);          //
             }
         }
         
@@ -258,17 +246,6 @@ void Surf3D::assemble()
         _nbinds->push_back(_normals->size()-1);
         _nbinds->push_back(_normals->size()-1);
         _nbinds->push_back(_normals->size()-1);
-        
-        
-        
-//        _lines->push_back(p[i][y_count][0]);
-//        _lines->push_back(p[i][y_count][1]);            //
-//        _lines->push_back(p[i][y_count][1]);
-//        _lines->push_back(p[i+1][y_count][1]);          //
-//        _lines->push_back(p[i+1][y_count][1]);
-//        _lines->push_back(p[i+1][y_count][0]);          //
-//        _lines->push_back(p[i+1][y_count][0]);
-//        _lines->push_back(p[i][y_count][0]);            //
     }
     
 
@@ -293,21 +270,11 @@ void Surf3D::assemble()
             _faces->push_back(_verts->size()-1);
             _colors->push_back(getColor(ii));
             
-//            _normals->push_back(getNormal(*tverts, p[ii][j][0], p[ii][j][1], p[ii][j+1][1]));
             _normals->push_back(getNormal(*tverts, p[ii][j][0], p[ii][j+1][1], p[ii][j][1]));
             _nbinds->push_back(_normals->size()-1);
             _nbinds->push_back(_normals->size()-1);
             _nbinds->push_back(_normals->size()-1);
             _nbinds->push_back(_normals->size()-1);
-            
-//            _lines->push_back(p[ii][j][0]);
-//            _lines->push_back(p[ii][j][1]);             //
-//            _lines->push_back(p[ii][j][1]);
-//            _lines->push_back(p[ii][j+1][1]);           //
-//            _lines->push_back(p[ii][j+1][1]);
-//            _lines->push_back(p[ii][j+1][0]);           //
-//            _lines->push_back(p[ii][j+1][0]);
-//            _lines->push_back(p[ii][j][0]);             //
         }
     }
 
@@ -321,14 +288,70 @@ void Surf3D::assemble()
     _geom->setColorArray(_colors);
     _geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
     
-    _lineGeom->setVertexArray(_verts);
-    _lineGeom->addPrimitiveSet(_lines);
-    _lineGeom->setColorArray(_colors);
-    _lineGeom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
     
+    lower = Vec3(bounds[0],bounds[2],bounds[4]);
+    upper = Vec3(bounds[1],bounds[3],bounds[5]);
+    
+    mid = (lower+upper)/2;
+    
+    Vec3 lower_inflated = (lower-mid)*lower_axis_scale + mid; lower_inflated[2] = lower[2];
+    Vec3 upper_inflated = (upper-mid)*upper_axis_scale + mid;
+    Vec3 x_extents(upper_inflated[0],lower_inflated[1],lower_inflated[2]);
+    Vec3 y_extents(lower_inflated[0],upper_inflated[1],lower_inflated[2]);
+    Vec3 z_extents(lower_inflated[0],lower_inflated[1],upper_inflated[2]);
+    
+    _axisVerts->push_back(lower_inflated);
+    _axisVerts->push_back(x_extents);
+    _axisVerts->push_back(y_extents);
+    _axisVerts->push_back(z_extents);
+    
+    _axisLines->push_back(0);
+    _axisLines->push_back(1);
+    _axisLines->push_back(0);
+    _axisLines->push_back(2);
+    _axisLines->push_back(0);
+    _axisLines->push_back(3);
+    
+    _axisColors->push_back(Vec4(0,0,0,1));
+    
+    _axisGeom->setVertexArray(_axisVerts);
+    _axisGeom->addPrimitiveSet(_axisLines);
+    _axisGeom->setColorArray(_axisColors);
+    _axisGeom->setColorBinding(osg::Geometry::BIND_OVERALL);
+    
+    
+    _x_text = new osgText::Text;
+    _y_text = new osgText::Text;
+    _z_text = new osgText::Text;
 
+    std::string fontname = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf";
+    
+    _x_text->setCharacterSize(0.005);
+    _x_text->setFont(fontname);
+    _x_text->setText("Pelvis X");
+    _x_text->setAxisAlignment(osgText::Text::SCREEN);
+    _x_text->setPosition(x_extents+Vec3(0,0,(upper_inflated[2]-lower_inflated[2])*0.035+lower_inflated[2]));
+    _x_text->setColor(Vec4(0,0,0,1));
+    addDrawable(_x_text);
+    
+    _y_text->setCharacterSize(0.005);
+    _y_text->setFont(fontname);
+    _y_text->setText("Pelvis Y");
+    _y_text->setAxisAlignment(osgText::Text::SCREEN);
+    _y_text->setPosition(y_extents+Vec3(0,0,(upper_inflated[2]-lower_inflated[2])*0.02+lower_inflated[2]));
+    _y_text->setColor(Vec4(0,0,0,1));
+    addDrawable(_y_text);
+    
+    _z_text->setCharacterSize(0.005);
+    _z_text->setFont(fontname);
+    _z_text->setText("TPD");
+    _z_text->setAxisAlignment(osgText::Text::SCREEN);
+    _z_text->setPosition(z_extents+Vec3(0,0,(upper_inflated[2]-lower_inflated[2])*0.02+lower_inflated[2]));
+    _z_text->setColor(Vec4(0,0,0,1));
+    addDrawable(_z_text);
+    
     addDrawable(_geom);
-    addDrawable(_lineGeom);
+    addDrawable(_axisGeom);
 }
 
 
