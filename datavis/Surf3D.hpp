@@ -14,6 +14,10 @@ public:
 
     Surf3D();
     Surf3D(const std::string& filename, osg::Vec4 color = osg::Vec4(0,0,1,1));
+    
+    double x_scale;
+    double y_scale;
+    double z_scale;
 
     std::vector< std::vector<double> > data;
 
@@ -30,8 +34,11 @@ protected:
 
     osg::ref_ptr<osg::Geometry> _geom;
     osg::ref_ptr<osg::Vec3Array> _verts;
+    osg::ref_ptr<osg::Vec3Array> _normals;
     osg::ref_ptr<osg::Vec4Array> _colors;
     osg::ref_ptr<osg::DrawElementsUInt> _faces;
+    osg::ref_ptr<osg::DrawElementsUInt> _lines;
+    osg::ref_ptr<osg::UIntArray> _nbinds;
 
 };
 
