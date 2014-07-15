@@ -84,7 +84,10 @@ static Vec3 getNormal(const Vec3Array& verts, size_t i1, size_t i2, size_t i3)
 
 Vec4 Surf3D::getColor(size_t layer)
 {
-    return (finalColor-startColor)*layer/data.size() + startColor;
+    if(data.size()>1)
+        return (finalColor-startColor)*layer/(data.size()-1) + startColor;
+    else
+        return startColor;
 }
 
 void Surf3D::assemble()

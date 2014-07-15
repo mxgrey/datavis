@@ -33,19 +33,13 @@ void DrawLayer::draw(std::vector<size_t> layers)
     size_t layersize = data[0].size();
     size_t pointcount = (layersize-1)/2;
 
-    _geom = new Geometry;
     _axisGeom = new Geometry;
     
     ref_ptr<Vec3Array> tverts = new Vec3Array;
-    _verts = new Vec3Array;
     _axisVerts = new Vec3Array;
-    _normals = new Vec3Array;
-    _colors = new Vec4Array;
     _axisColors = new Vec4Array;
 
-    _faces = new DrawElementsUInt(PrimitiveSet::QUADS, 0);
     _axisLines = new DrawElementsUInt(PrimitiveSet::LINES, 0);
-    _nbinds = new UIntArray;
     
     std::vector<double> bounds; bounds.resize(6);
     for(size_t i=0; i<3; ++i)
@@ -109,6 +103,15 @@ void DrawLayer::draw(std::vector<size_t> layers)
     
     for(size_t i=0; i<layers.size(); ++i)
     {
+        _geom = new Geometry;
+        _verts = new Vec3Array;
+        _normals = new Vec3Array;
+        _colors = new Vec4Array;
+        _faces = new DrawElementsUInt(PrimitiveSet::QUADS, 0);
+        _nbinds = new UIntArray;
+        
+        double z = 1e-5*i;
+
         size_t layer = layers[i];
         
         if(layer >= data.size())
@@ -119,19 +122,19 @@ void DrawLayer::draw(std::vector<size_t> layers)
         
         for(size_t j=0; j<y_count; ++j)
         {
-            _verts->push_back((*tverts)[p[layer][j][0]]);
+            _verts->push_back((*tverts)[p[layer][j][0]]); _verts->back()[2] = z;
             _faces->push_back(_verts->size()-1);
             _colors->push_back(getColor(layer));
             
-            _verts->push_back((*tverts)[p[layer][j][1]]);
+            _verts->push_back((*tverts)[p[layer][j][1]]); _verts->back()[2] = z;
             _faces->push_back(_verts->size()-1);
             _colors->push_back(getColor(layer));
             
-            _verts->push_back((*tverts)[p[layer][j+1][1]]);
+            _verts->push_back((*tverts)[p[layer][j+1][1]]); _verts->back()[2] = z;
             _faces->push_back(_verts->size()-1);
             _colors->push_back(getColor(layer));
             
-            _verts->push_back((*tverts)[p[layer][j+1][0]]);
+            _verts->push_back((*tverts)[p[layer][j+1][0]]); _verts->back()[2] = z;
             _faces->push_back(_verts->size()-1);
             _colors->push_back(getColor(layer));
             
@@ -141,17 +144,66 @@ void DrawLayer::draw(std::vector<size_t> layers)
             _nbinds->push_back(_normals->size()-1);
             _nbinds->push_back(_normals->size()-1);
         }
+        
+        _geom->setVertexArray(_verts);
+        _geom->addPrimitiveSet(_faces);
+        
+        _geom->setNormalArray(_normals);
+        _geom->setNormalIndices(_nbinds);
+        _geom->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
+        
+        _geom->setColorArray(_colors);
+        _geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
+        
+        addDrawable(_geom);
+        
+        if(z>0)
+        {
+            _geom = new Geometry;
+            _verts = new Vec3Array;
+            _normals = new Vec3Array;
+            _colors = new Vec4Array;
+            _faces = new DrawElementsUInt(PrimitiveSet::QUADS, 0);
+            _nbinds = new UIntArray;
+            
+            for(size_t j=0; j<y_count; ++j)
+            {
+                _verts->push_back((*tverts)[p[layer][j][0]]); _verts->back()[2] = -z;
+                _faces->push_back(_verts->size()-1);
+                _colors->push_back(getColor(layer)); _colors->back()[3] = 1;
+                
+                _verts->push_back((*tverts)[p[layer][j][1]]); _verts->back()[2] = -z;
+                _faces->push_back(_verts->size()-1);
+                _colors->push_back(getColor(layer)); _colors->back()[3] = 1;
+                
+                _verts->push_back((*tverts)[p[layer][j+1][1]]); _verts->back()[2] = -z;
+                _faces->push_back(_verts->size()-1);
+                _colors->push_back(getColor(layer)); _colors->back()[3] = 1;
+                
+                _verts->push_back((*tverts)[p[layer][j+1][0]]); _verts->back()[2] = -z;
+                _faces->push_back(_verts->size()-1);
+                _colors->push_back(getColor(layer)); _colors->back()[3] = 1;
+                
+                _normals->push_back(getNormal(*tverts, p[layer][j][0], p[layer][j+1][1], p[layer][j][1]));
+                _nbinds->push_back(_normals->size()-1);
+                _nbinds->push_back(_normals->size()-1);
+                _nbinds->push_back(_normals->size()-1);
+                _nbinds->push_back(_normals->size()-1);
+            }
+            
+            _geom->setVertexArray(_verts);
+            _geom->addPrimitiveSet(_faces);
+            
+            _geom->setNormalArray(_normals);
+            _geom->setNormalIndices(_nbinds);
+            _geom->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
+            
+            _geom->setColorArray(_colors);
+            _geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
+            
+            addDrawable(_geom);
+        }
     }
-    
-    _geom->setVertexArray(_verts);
-    _geom->addPrimitiveSet(_faces);
-    
-    _geom->setNormalArray(_normals);
-    _geom->setNormalIndices(_nbinds);
-    _geom->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
-    
-    _geom->setColorArray(_colors);
-    _geom->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
     
     
     lower = Vec3(bounds[0],bounds[2],bounds[4]);
@@ -202,7 +254,6 @@ void DrawLayer::draw(std::vector<size_t> layers)
     _y_text->setColor(Vec4(0,0,0,1));
     addDrawable(_y_text);
     
-    addDrawable(_geom);
     addDrawable(_axisGeom);
 }
 

@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    ref_ptr<DrawLayer> layers = new DrawLayer(argv[1], Vec4(0,0,1,0.9), Vec4(1,0,0,0.9));
+    ref_ptr<DrawLayer> layers = new DrawLayer(argv[1], Vec4(0,0,1,1), Vec4(1,0,0,0.5));
     std::vector<size_t> indices; indices.push_back(0); indices.push_back(layers->data.size()-1);
     layers->draw(indices);
     ref_ptr<Group> root = new Group;
